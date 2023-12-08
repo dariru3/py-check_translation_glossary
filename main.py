@@ -21,23 +21,37 @@ glossary_df = pd.read_csv(glossary_path)
 def check_translation_consistency(japanese_text, english_translation, glossary_df):
     inconsistencies = []
     glossary_terms = glossary_df.to_dict(orient='records')
+    terms_used = set()
+    correct_translations = 0
 
     for term in glossary_terms:
         japanese_term = term['日本語'].strip()
         english_term = term['English'].strip().strip('"')
 
-        # Check if the Japanese term is in the text
-        if re.search(japanese_term, japanese_text):
+        # Check if the Japanese term is in the text and hasn't been counted yet
+        if re.search(japanese_term, japanese_text) and japanese_term not in terms_used:
+            terms_used.add(japanese_term)
             # Check if the English translation is in the English text
-            if not re.search(english_term, english_translation, re.IGNORECASE):
+            if re.search(english_term, english_translation, re.IGNORECASE):
+                correct_translations += 1
+            else:
                 inconsistencies.append((japanese_term, english_term))
 
-    return inconsistencies
+    total_terms_used = len(terms_used)
+    print(f'Terms found:{terms_used}')
+    return inconsistencies, total_terms_used, correct_translations
 
 # Running the function with the provided texts and the actual glossary
-inconsistencies_found = check_translation_consistency(japanese_text, english_translation, glossary_df)
+inconsistencies_found, total_terms_used, correct_translations = check_translation_consistency(japanese_text, english_translation, glossary_df)
 
 # Output the inconsistencies
-print("Inconsistencies Found:")
+print("\nInconsistencies Found:")
 for inconsistency in inconsistencies_found:
     print(f"Japanese Term: {inconsistency[0]}, Expected English Translation: {inconsistency[1]}")
+
+# Calculate and print the percentage of correct translations
+if total_terms_used > 0:
+    percentage_correct = (correct_translations / total_terms_used) * 100
+    print(f"\nPercentage of Glossary Terms Correctly Translated: {percentage_correct:.2f}%")
+else:
+    print("No glossary terms found in the Japanese text.")
