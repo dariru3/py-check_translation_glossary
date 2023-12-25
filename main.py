@@ -19,39 +19,41 @@ glossary_df = pd.read_csv(glossary_path)
 
 # Function to check if the translations are consistent with the glossary
 def check_translation_consistency(japanese_text, english_translation, glossary_df):
-    inconsistencies = []
+    inconsistencies = {}
     glossary_terms = glossary_df.to_dict(orient='records')
-    total_occurances = 0
+    total_occurrences = 0
     correct_translations = 0
 
     for term in glossary_terms:
         japanese_term = term['日本語'].strip()
         english_term = term['English'].strip().strip('"')
 
-        japanese_occurance = re.findall(japanese_term, japanese_text)
-        english_occurance = re.findall(english_term, english_translation, re.IGNORECASE)
+        # Find all occurrences of the Japanese term in the Japanese text
+        japanese_occurrences = re.findall(japanese_term, japanese_text)
+        # Find all occurrences of the English term in the English text
+        english_occurrences = re.findall(english_term, english_translation, re.IGNORECASE)
 
-        for _ in japanese_occurance:
-            total_occurances += 1
-            if english_occurance:
-                correct_translations += 1
-            else:
-                if japanese_term not in [inconsistencies[0] for inconsistency in inconsistencies]:
-                    inconsistencies.append((japanese_term, english_term))
-    
-    return inconsistencies, total_occurances, correct_translations
+        occurrence_count = len(japanese_occurrences)
+        total_occurrences += occurrence_count
+        if japanese_occurrences and not english_occurrences:
+            inconsistencies[japanese_term] = (english_term, occurrence_count)
+
+        if japanese_occurrences:
+            correct_translations += occurrence_count if english_occurrences else 0
+
+    return inconsistencies, total_occurrences, correct_translations
 
 # Running the function with the provided texts and the actual glossary
-inconsistencies_found, total_occurances, correct_translations = check_translation_consistency(japanese_text, english_translation, glossary_df)
+inconsistencies_found, total_occurrences, correct_translations = check_translation_consistency(japanese_text, english_translation, glossary_df)
 
 # Output the inconsistencies
 print("\nInconsistencies Found:")
-for inconsistency in inconsistencies_found:
-    print(f"Japanese Term: {inconsistency[0]}, Expected English Translation: {inconsistency[1]}")
+for japanese_term, (english_term, count) in inconsistencies_found.items():
+    print(f"Japanese Term: {japanese_term}, Expected English Translation: {english_term}, Count: {count}")
 
 # Calculate and print the percentage of correct translations
-if total_occurances > 0:
-    percentage_correct = (correct_translations / total_occurances) * 100
+if total_occurrences > 0:
+    percentage_correct = (correct_translations / total_occurrences) * 100
     print(f"\nPercentage of Glossary Terms Correctly Translated: {percentage_correct:.2f}%")
 else:
     print("No glossary terms found in the Japanese text.")
